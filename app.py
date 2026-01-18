@@ -110,9 +110,8 @@ def delete_team_memberid(id):
 
 
 
-'''----------------TODO DO ZMIANY JUTRO-=-=-----------'''
-
-'''Funkcja ma losowac osobe sposrod tych ktorzy maja flage FALSE dla was_picked, zmienic flage na True dla wylosowanych '''
+'''Funkcja ma losowac osobe sposrod tych ktorzy maja flage FALSE dla was_picked, zmienic flage na True dla wylosowanych,
+dac znac jesli dostepni sie skoncza i nalezy zresetowac losowanie '''
 
 # pobierz TYLKO dostepnych (was_picked = False)
 # wsrod wszystkich dostepnych wybierz losowego i go zwrocic
@@ -144,8 +143,6 @@ def pick_random_team_member():
 
     return jsonify({"Losowy członek zespolu, ktory jeszcze nie byl wybrany:": random_team_member_from_available})
 
-
-'''^^^^^^^----------------TODO DO ZMIANY JUTRO-=-=-----------^^^^^^^^'''
 
 
 
