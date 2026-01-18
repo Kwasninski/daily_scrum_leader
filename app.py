@@ -137,7 +137,7 @@ def pick_random_team_member():
     # GET czlonkowie zespolu z flaga was_picked = FALSE
     available_members = TeamMember.query.filter_by(was_picked=False).all()
 
-    # jesli wszyscy zostali wybrani zwroc info o tym
+    # jesli wszyscy maja flage was_picked == True, zwroc info
     if len(available_members) == 0:
         return {"message": "wszyscy zostali wybrani, resetuj"}
 
@@ -168,7 +168,7 @@ def reset_flag_was_picked_for_all():
         team_member.was_picked = False
     db.session.commit()
 
-    return jsonify({"message": "ok"})
+    return jsonify({"message": "zresetowano flage u wszystkich"})
 
 
 
