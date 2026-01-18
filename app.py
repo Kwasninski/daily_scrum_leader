@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template
 from flask_sqlalchemy import SQLAlchemy
 from flask_scss import Scss
 import random
@@ -29,7 +29,7 @@ with app.app_context():
 # home
 @app.route("/")
 def home():
-    return {"message": "Hello world"}
+    return render_template("index.html")
 
 
 
@@ -37,11 +37,23 @@ def home():
 @app.route("/team-members", methods=['POST'])
 def add_team_member():
     data = request.get_json()
-    new_team_member = TeamMember(name=data['name'])
+
+    # walidacja danych
+    if not data: 
+        return jsonify({"message": "Brak body requestu"}), 400
+    
+    name = data.get("name")
+    if not name:
+        return jsonify({"message": "Pole 'name' jest wymagane"}), 400
+    
+    if not isinstance(name, str):
+        return jsonify({"message": "Pole 'name' musi byc stringiem"}), 400
+    
+    new_team_member = TeamMember(name=name.strip)
     db.session.add(new_team_member)
     db.session.commit()
 
-    return jsonify({"message": f'dodano czlonka zespolu {new_team_member.name}'}, 201)
+    return jsonify({"message": f'dodano czlonka zespolu {new_team_member.name}'}), 201
 
 
 
@@ -55,7 +67,7 @@ def get_all_team_members():
         team_member_data = {
             "id": team_member.id,
             "name": team_member.name,
-            "was picked": team_member.was_picked
+            "was_picked": team_member.was_picked
             }
         output.append(team_member_data)
     
@@ -73,7 +85,7 @@ def get_team_member_by_id(id):
     return jsonify({
         "id": team_member.id,
         "name": team_member.name,
-        "was picked": team_member.was_picked
+        "was_picked": team_member.was_picked
     })
 
 
@@ -83,10 +95,12 @@ def get_team_member_by_id(id):
 def update_team_member(id):
     team_member_to_update = TeamMember.query.get_or_404(id)
 
-    data = request.get_json(id)
+    data = request.get_json()
 
-    team_member_to_update.name = data['name']
-    # team_member_to_update.was_picked = data['was_picked'] - czy to bedzie potrzebne? moze lepiej nie dawac mozliwosci update flagi 
+    if not data or "name" not in data:
+        return jsonify({"message": "Pole 'name' jest wymagane"}), 400
+
+    team_member_to_update.name = data['name'].strip()
     db.session.commit()
 
     return jsonify({"message": f"team member {team_member_to_update.name} updated"})
@@ -141,24 +155,20 @@ def pick_random_team_member():
             "was_picked": random_member_in_available.was_picked
         })
 
-    return jsonify({"Losowy członek zespolu, ktory jeszcze nie byl wybrany:": random_team_member_from_available})
-
+    return jsonify({"Wylosowany/a do prowadzenia:": random_team_member_from_available})
 
 
 
 # PUT was_picked dla wszystkich na bazie
 @app.route("/team-member/was-picked/reset", methods=["PUT"])
 def reset_flag_was_picked_for_all():
-    team_memberrs_with_flag_to_change_to_false = TeamMember.query.all()
+    team_members_with_flag_to_change_to_false = TeamMember.query.all()
 
-    for team_member in team_memberrs_with_flag_to_change_to_false:
+    for team_member in team_members_with_flag_to_change_to_false:
         team_member.was_picked = False
-        db.session.commit()
+    db.session.commit()
 
     return jsonify({"message": "ok"})
-
-
-
 
 
 
@@ -174,8 +184,6 @@ def change_flag_was_picked_for_team_member(id):
     db.session.commit()
 
     return jsonify({"message": f"team member {team_member_with_flag_to_change.name} updated"})
-
-
 
 
 
