@@ -7,8 +7,27 @@
 </head>
 <body>
     <h1>
-        This is working properly
+        Powiedzmy że działa, losowanie...
     </h1>
+        <div>
+        {% block body%}
+        {% for member in team_members_serialized %}
+
+            
+            <p> {{member.name}}{% if member.was_picked == True%} - wylosowany/a</p>
+            {% endif %}
+
+        {% endfor %}
+
+        <p></p>
+        <a href="/team-members/random"> wylosuj </a>
+        <form action="/team-member/was-picked/reset" method="post">
+            <button type="submit">Reset</button>
+        </form>
+
+
     
+        {% endblock%}
+        </div>
 </body>
 </html>

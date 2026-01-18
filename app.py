@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_scss import Scss
 import random
@@ -25,11 +25,11 @@ with app.app_context():
     db.create_all()
 
 
-
-# home
-@app.route("/")
-def home():
-    return render_template("index.html")
+# do wywal
+# # home
+# @app.route("/")
+# def home():
+#     return render_template("index.html")
 
 
 
@@ -61,7 +61,7 @@ def add_team_member():
 @app.route("/team-members", methods=["GET"])
 def get_all_team_members():
     team_members = TeamMember.query.all()
-    output = []
+    team_members_serialized = []
 
     for team_member in team_members:
         team_member_data = {
@@ -69,12 +69,12 @@ def get_all_team_members():
             "name": team_member.name,
             "was_picked": team_member.was_picked
             }
-        output.append(team_member_data)
+        team_members_serialized.append(team_member_data)
     
-    if len(output) < 1:
+    if len(team_members_serialized) < 1:
         return {"message": "brak czlonkow zespolu"}
     
-    return {"team members": output}
+    return render_template("index.html", team_members_serialized=team_members_serialized)
 
 
 # GET ID - pobierz czlonka zespolu po ID
@@ -141,10 +141,15 @@ def pick_random_team_member():
     if len(available_members) == 0:
         return {"message": "wszyscy zostali wybrani, resetuj"}
 
-    #obiekt LOSOWEJ OSOBY Z FLAGA NA FALSE
+    #wylosuj osobe i ustaw flage na TRUE
     random_member_in_available = random.choice(available_members)
     random_member_in_available.was_picked = True
-    db.session.commit()
+    if random_member_in_available:
+        try:
+            db.session.commit()
+            return redirect("/team-members")
+        except Exception:
+            return f"wystapil blad"
 
     # serializacja wyniku - osoba wybrana
     random_team_member_from_available = []
@@ -159,15 +164,18 @@ def pick_random_team_member():
 
 
 
-# PUT was_picked dla wszystkich na bazie
-@app.route("/team-member/was-picked/reset", methods=["PUT"])
+# PUT RESETUJ FLAGE was_picked na False dla wszystkich
+@app.route("/team-member/was-picked/reset", methods=["POST"])
 def reset_flag_was_picked_for_all():
     team_members_with_flag_to_change_to_false = TeamMember.query.all()
+
 
     for team_member in team_members_with_flag_to_change_to_false:
         team_member.was_picked = False
     db.session.commit()
 
+    return redirect("/team-members")
+    
     return jsonify({"message": "zresetowano flage u wszystkich"})
 
 
