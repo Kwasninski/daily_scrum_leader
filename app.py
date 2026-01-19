@@ -36,24 +36,34 @@ with app.app_context():
 # POST - dodaj czlonka zespolu
 @app.route("/team-members", methods=['POST'])
 def add_team_member():
-    data = request.get_json()
 
-    # walidacja danych
-    if not data: 
-        return jsonify({"message": "Brak body requestu"}), 400
-    
-    name = data.get("name")
-    if not name:
-        return jsonify({"message": "Pole 'name' jest wymagane"}), 400
-    
-    if not isinstance(name, str):
-        return jsonify({"message": "Pole 'name' musi byc stringiem"}), 400
-    
-    new_team_member = TeamMember(name=name.strip)
-    db.session.add(new_team_member)
-    db.session.commit()
+    current_new_team_member = request.form['name']
+    try:
+        new_team_member = TeamMember(name=current_new_team_member)
+        db.session.add(new_team_member)
+        db.session.commit()
+        return redirect("/team-members")
+    except Exception as e:
+        return f"Problem z dodaniem osoby {e}"
+   
 
-    return jsonify({"message": f'dodano czlonka zespolu {new_team_member.name}'}), 201
+    # data = request.get_json()
+
+    # # walidacja danych
+    # if not data: 
+    #     return jsonify({"message": "Brak body requestu"}), 400
+    
+    # name = data.get("name")
+    # if not name:
+    #     return jsonify({"message": "Pole 'name' jest wymagane"}), 400
+    
+    # if not isinstance(name, str):
+    #     return jsonify({"message": "Pole 'name' musi byc stringiem"}), 400
+    # name = request.form['name']
+
+
+
+    # return jsonify({"message": f'dodano czlonka zespolu {new_team_member.name}'}), 201
 
 
 
@@ -71,8 +81,8 @@ def get_all_team_members():
             }
         team_members_serialized.append(team_member_data)
     
-    if len(team_members_serialized) < 1:
-        return {"message": "brak czlonkow zespolu"}
+    # if len(team_members_serialized) < 1:
+    #     return {"message": "brak czlonkow zespolu"}
     
     return render_template("index.html", team_members_serialized=team_members_serialized)
 
@@ -109,18 +119,18 @@ def update_team_member(id):
 
 
 #DELETE - Usun czlonka zespolu
-@app.route("/team-members/<int:id>", methods=['DELETE'])
-def delete_team_memberid(id):
+@app.route("/team-members/<int:id>/delete", methods=['POST'])
+def delete_team_member_id(id):
     team_member_to_delete = TeamMember.query.get(id)
 
-    try:
-        db.session.delete(team_member_to_delete)
-        db.session.commit()
-    except Exception:
-        return {"message": f"nie znaleziono czlonka zespolu o tym id"}
+    db.session.delete(team_member_to_delete)
+    db.session.commit()
 
+    return redirect("/team-members")
 
-    return jsonify({"message": f"usunięto czlonka zespolu:{team_member_to_delete.name}"})
+    return None
+
+    # return jsonify({"message": f"usunięto czlonka zespolu:{team_member_to_delete.name}"})
 
 
 
@@ -139,6 +149,7 @@ def pick_random_team_member():
 
     # jesli wszyscy maja flage was_picked == True, zwroc info
     if len(available_members) == 0:
+        return redirect("/team-members")
         return {"message": "wszyscy zostali wybrani, resetuj"}
 
     #wylosuj osobe i ustaw flage na TRUE
@@ -165,7 +176,7 @@ def pick_random_team_member():
 
 
 # PUT RESETUJ FLAGE was_picked na False dla wszystkich
-@app.route("/team-member/was-picked/reset", methods=["POST"])
+@app.route("/team-members/was-picked/reset", methods=["POST"])
 def reset_flag_was_picked_for_all():
     team_members_with_flag_to_change_to_false = TeamMember.query.all()
 
@@ -175,7 +186,7 @@ def reset_flag_was_picked_for_all():
     db.session.commit()
 
     return redirect("/team-members")
-    
+
     return jsonify({"message": "zresetowano flage u wszystkich"})
 
 
@@ -195,25 +206,7 @@ def change_flag_was_picked_for_team_member(id):
 
 
 
-# GET tylko tych którzy maja False dla was_picked - Tych chce pod losowanie randomowego
-@app.route("/only-was-picked", methods=["GET"])
-def get_only_was_picked():
-    # zapisz w zmiennej tylko tych ktorzy maja flage False na was_picked
-    team_members = TeamMember.query.filter_by(was_picked=True).all()
-
-    output_picked = []
-
-    for team_member in team_members:
-        output_picked.append({
-            "id": team_member.id,
-            "name": team_member.name,
-            "was_picked": team_member.was_picked
-        })
-
-    return jsonify({"message": output_picked})
-
-
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(port=8000, debug=True)
 
