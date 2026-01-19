@@ -10,7 +10,7 @@
 </head>
 <body class="container mt-4">
 
-<h1 class="mb-4">Daily Scrum – losowanie</h1>
+<h1 class="mb-4">Kto prowadzi Daily?</h1>
 
 <!-- Dodaj członka zespołu -->
 <form action="/team-members" method="post" class="mb-3">
@@ -20,8 +20,7 @@
             name="name"
             class="form-control"
             placeholder="Imię członka zespołu"
-            required
-        >
+            required>
         <button class="btn btn-primary" type="submit">Dodaj do losowania</button>
     </div>
 </form>
@@ -33,6 +32,13 @@
     <form action="/team-members/was-picked/reset" method="POST" class="d-inline">
         <button class="btn btn-warning">🔄 Reset</button>
     </form>
+        <form
+            action="/team-members/delete"
+            method="post"
+            class="d-inline"
+            onsubmit="return confirm('Na pewno usunąć wszystko?');">
+            <button class="btn btn-sm btn btn-danger">Usuń wszystko</button>
+        </form>
 </div>
 
 <!-- Lista członków -->
@@ -51,13 +57,19 @@
             <td>
                 {% if member.was_picked %}
                     ✅ Wybrany
+                    {% if loop.first %} – Prowadzi daily 
+                    {% endif %}
                 {% else %}
-                    ⏳ Dostępny
+                    Dostępny
                 {% endif %}
             </td>
             <td>
-                <form action="/team-members/{{ member.id }}/delete" method="post">
-                    <button type="button" class="btn btn-outline-danger"> Usuń z listy 🗑</button>
+                <form
+                    action="/team-members/{{ member.id }}/delete"
+                    method="post"
+                    class="d-inline"
+                    onsubmit="return confirm('Na pewno usunąć {{ member.name }}?');">
+                    <button class="btn btn-sm btn btn-outline-danger">🗑 Usuń</button>
                 </form>
             </td>
         </tr>

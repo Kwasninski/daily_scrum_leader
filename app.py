@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify, render_template, redirect
 from flask_sqlalchemy import SQLAlchemy
 from flask_scss import Scss
 import random
+from datetime import datetime
 
 #app init
 app = Flask(__name__)
@@ -17,19 +18,13 @@ class TeamMember(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(30), nullable=False)
     was_picked = db.Column(db.Boolean, unique=False, default=False)
+    picked_at = db.Column(db.DateTime)
 
     def __repr__(self) -> str:
         return f"Team member {self.id}"
 
 with app.app_context():
     db.create_all()
-
-
-# do wywal
-# # home
-# @app.route("/")
-# def home():
-#     return render_template("index.html")
 
 
 
@@ -47,30 +42,10 @@ def add_team_member():
         return f"Problem z dodaniem osoby {e}"
    
 
-    # data = request.get_json()
-
-    # # walidacja danych
-    # if not data: 
-    #     return jsonify({"message": "Brak body requestu"}), 400
-    
-    # name = data.get("name")
-    # if not name:
-    #     return jsonify({"message": "Pole 'name' jest wymagane"}), 400
-    
-    # if not isinstance(name, str):
-    #     return jsonify({"message": "Pole 'name' musi byc stringiem"}), 400
-    # name = request.form['name']
-
-
-
-    # return jsonify({"message": f'dodano czlonka zespolu {new_team_member.name}'}), 201
-
-
-
 #GET - pobierz wszystkich czlonkow zespolu
 @app.route("/team-members", methods=["GET"])
 def get_all_team_members():
-    team_members = TeamMember.query.all()
+    team_members = TeamMember.query.order_by(TeamMember.picked_at.desc().nulls_last()).all()
     team_members_serialized = []
 
     for team_member in team_members:
@@ -118,14 +93,12 @@ def update_team_member(id):
 
 
 
-#DELETE - Usun czlonka zespolu
+#DELETE - Usun czlonka zespolu po ID
 @app.route("/team-members/<int:id>/delete", methods=['POST'])
 def delete_team_member_id(id):
     team_member_to_delete = TeamMember.query.get(id)
-
     db.session.delete(team_member_to_delete)
     db.session.commit()
-
     return redirect("/team-members")
 
     return None
@@ -133,15 +106,16 @@ def delete_team_member_id(id):
     # return jsonify({"message": f"usunięto czlonka zespolu:{team_member_to_delete.name}"})
 
 
+# DELETE - USUN WSZYSTKICH 
+@app.route("/team-members/delete", methods=["POST"])
+def delete_all_team_members():
+    TeamMember.query.delete()
+    db.session.commit()
+    return redirect("/team-members")
 
-'''Funkcja ma losowac osobe sposrod tych ktorzy maja flage FALSE dla was_picked, zmienic flage na True dla wylosowanych,
-dac znac jesli dostepni sie skoncza i nalezy zresetowac losowanie '''
-
-# pobierz TYLKO dostepnych (was_picked = False)
-# wsrod wszystkich dostepnych wybierz losowego i go zwrocic
-# jesli nie ma zadnych dostepnych zwroc komunikat "message":"wszyscy zostali wybrani"
 
 
+# wylosuj osobe z tych z którzy maja flage was_picked na Flase
 @app.route("/team-members/random", methods=["GET"])
 def pick_random_team_member():
     # GET czlonkowie zespolu z flaga was_picked = FALSE
@@ -155,6 +129,7 @@ def pick_random_team_member():
     #wylosuj osobe i ustaw flage na TRUE
     random_member_in_available = random.choice(available_members)
     random_member_in_available.was_picked = True
+    random_member_in_available.picked_at = datetime.now()
     if random_member_in_available:
         try:
             db.session.commit()
@@ -180,13 +155,12 @@ def pick_random_team_member():
 def reset_flag_was_picked_for_all():
     team_members_with_flag_to_change_to_false = TeamMember.query.all()
 
-
     for team_member in team_members_with_flag_to_change_to_false:
         team_member.was_picked = False
+        team_member.picked_at = None
     db.session.commit()
 
     return redirect("/team-members")
-
     return jsonify({"message": "zresetowano flage u wszystkich"})
 
 
@@ -203,7 +177,6 @@ def change_flag_was_picked_for_team_member(id):
     db.session.commit()
 
     return jsonify({"message": f"team member {team_member_with_flag_to_change.name} updated"})
-
 
 
 
