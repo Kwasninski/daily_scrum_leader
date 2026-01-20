@@ -102,7 +102,7 @@ def api_get_all_team_members():
         team_members_serialized.append(team_member_data)
 
     if len(team_members_serialized) < 1:
-        return {"message": "brak czlonkow zespolu"}
+        return {"message": "brak czlonkow zespolu"}, 200
     
     return jsonify({"Wszyscy członkowie zespołu": team_members_serialized})
 
@@ -145,6 +145,7 @@ def update_team_member(id):
 
 
 """ DELETE - Usun czlonka zespolu po ID """
+
 # web
 @app.route("/team-members/<int:id>/delete", methods=['POST'])
 def delete_team_member_id(id):
