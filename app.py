@@ -3,6 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_scss import Scss
 import random
 from datetime import datetime
+import time
 
 #app init
 app = Flask(__name__)
@@ -209,6 +210,8 @@ def api_delete_all_team_members():
 
 """ GET Losowanie """
 
+## TODO odizolowac endpoint API od WEBowego
+
 # wylosuj osobe z tych z którzy maja flage was_picked na Flase
 @app.route("/team-members/random", methods=["GET"])
 def pick_random_team_member():
@@ -297,6 +300,6 @@ def api_change_flag_was_picked_for_team_member(id):
 
 
 
-if __name__ == "__main__":
-    app.run(port=8000, debug=True)
+# if __name__ == "__main__":
+#     app.run(port=8000, debug=True)
 
