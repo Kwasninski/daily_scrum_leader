@@ -41,7 +41,8 @@ def add_team_member():
         db.session.commit()
         return redirect("/team-members")
     except Exception as e:
-        return f"Problem z dodaniem osoby {e}"
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
     
 # api
 @app.route("/api/team-members", methods=['POST'])
@@ -60,8 +61,12 @@ def api_add_team_member():
         return jsonify({"message": "Pole 'name' musi byc stringiem"}), 400
     
     new_team_member = TeamMember(name=name.strip())
-    db.session.add(new_team_member)
-    db.session.commit()
+    try:
+        db.session.add(new_team_member)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
 
     return jsonify({"message": f'dodano czlonka zespolu {new_team_member.name}'}), 201
@@ -150,9 +155,14 @@ def update_team_member(id):
 @app.route("/team-members/<int:id>/delete", methods=['POST'])
 def delete_team_member_id(id):
     team_member_to_delete = TeamMember.query.get(id)
-    db.session.delete(team_member_to_delete)
-    db.session.commit()
-    return redirect("/team-members")
+    try:
+        db.session.delete(team_member_to_delete)
+        db.session.commit()
+        return redirect("/team-members")
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
 
 # api
@@ -161,8 +171,14 @@ def api_delete_team_member_id(id):
     team_member_to_delete = TeamMember.query.get(id)
     if not team_member_to_delete:
         return jsonify({"message": f"brak osoby o id: {id}"})
-    db.session.delete(team_member_to_delete)
-    db.session.commit()
+    
+    try:
+        db.session.delete(team_member_to_delete)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
 
     return jsonify({"message": f"usunięto czlonka zespolu: {team_member_to_delete.name}"})
 
@@ -181,7 +197,12 @@ def delete_all_team_members():
 @app.route("/api/team-members/delete", methods=["DELETE"])
 def api_delete_all_team_members():
     TeamMember.query.delete()
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+    
     return jsonify({"message": "usunięto dane wszystkich osob"})
 
 
@@ -245,7 +266,11 @@ def api_reset_flag_was_picked_for_all():
     for team_member in team_members_with_flag_to_change_to_false:
         team_member.was_picked = False
         team_member.picked_at = None
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
     return jsonify({"message": "zresetowano flage u wszystkich"})
 
@@ -262,7 +287,11 @@ def api_change_flag_was_picked_for_team_member(id):
         team_member_with_flag_to_change.was_picked = False
     else:
         team_member_with_flag_to_change.was_picked = True
-    db.session.commit()
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
 
     return jsonify({"message": f"team member {team_member_with_flag_to_change.name} updated"})
 
