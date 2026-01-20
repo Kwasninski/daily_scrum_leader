@@ -28,17 +28,16 @@
 <!-- Akcje -->
 <div class="mb-3">
     <a href="/team-members/random" class="btn btn-success">🎲 Losuj</a>
-
     <form action="/team-members/was-picked/reset" method="POST" class="d-inline">
         <button class="btn btn-warning">🔄 Reset</button>
     </form>
-        <form
+        <!-- <form
             action="/team-members/delete"
             method="post"
             class="d-inline"
             onsubmit="return confirm('Na pewno usunąć wszystko?');">
             <button class="btn btn-sm btn btn-danger">Usuń wszystko</button>
-        </form>
+        </form> -->
 </div>
 
 <!-- Lista członków -->
@@ -46,7 +45,7 @@
     <thead>
         <tr>
             <th>Imię</th>
-            <th>Status</th>
+            <th>Dostępny/a do losowania?</th>
             <th>Akcje</th>
         </tr>
     </thead>
@@ -56,11 +55,11 @@
             <td>{{ member.name }}</td>
             <td>
                 {% if member.was_picked %}
-                    ✅ Wybrany
-                    {% if loop.first %} – Prowadzi daily 
+                    ❌
+                    {% if loop.first %} – Prowadzi daily w obecnym sprincie (ostatnie losowanie)
                     {% endif %}
                 {% else %}
-                    Dostępny
+                    ✅
                 {% endif %}
             </td>
             <td>

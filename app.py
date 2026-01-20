@@ -28,11 +28,13 @@ with app.app_context():
 
 
 
-# POST - dodaj czlonka zespolu
+""" POST - dodaj czlonka zespolu """
+
+# web
 @app.route("/team-members", methods=['POST'])
 def add_team_member():
-
     current_new_team_member = request.form['name']
+
     try:
         new_team_member = TeamMember(name=current_new_team_member)
         db.session.add(new_team_member)
@@ -40,9 +42,36 @@ def add_team_member():
         return redirect("/team-members")
     except Exception as e:
         return f"Problem z dodaniem osoby {e}"
+    
+# api
+@app.route("/api/team-members", methods=['POST'])
+def api_add_team_member():
+    data = request.get_json()
+
+    # walidacja danych
+    if not data: 
+        return jsonify({"message": "Brak body requestu"}), 400
+    
+    name = data.get("name")
+    if not name:
+        return jsonify({"message": "Pole 'name' jest wymagane"}), 400
+    
+    if not isinstance(name, str):
+        return jsonify({"message": "Pole 'name' musi byc stringiem"}), 400
+    
+    new_team_member = TeamMember(name=name.strip())
+    db.session.add(new_team_member)
+    db.session.commit()
+
+
+    return jsonify({"message": f'dodano czlonka zespolu {new_team_member.name}'}), 201
    
 
-#GET - pobierz wszystkich czlonkow zespolu
+
+
+""" GET - pobierz wszystkich czlonkow zespolu """
+
+# web
 @app.route("/team-members", methods=["GET"])
 def get_all_team_members():
     team_members = TeamMember.query.order_by(TeamMember.picked_at.desc().nulls_last()).all()
@@ -56,14 +85,34 @@ def get_all_team_members():
             }
         team_members_serialized.append(team_member_data)
     
-    # if len(team_members_serialized) < 1:
-    #     return {"message": "brak czlonkow zespolu"}
-    
     return render_template("index.html", team_members_serialized=team_members_serialized)
 
+# API
+@app.route("/api/team-members", methods=["GET"])
+def api_get_all_team_members():
+    team_members = TeamMember.query.all()
+    team_members_serialized = []
 
-# GET ID - pobierz czlonka zespolu po ID
-@app.route("/team-members/<int:id>")
+    for team_member in team_members:
+        team_member_data = {
+            "id": team_member.id,
+            "name": team_member.name,
+            "was_picked": team_member.was_picked
+            }
+        team_members_serialized.append(team_member_data)
+
+    if len(team_members_serialized) < 1:
+        return {"message": "brak czlonkow zespolu"}
+    
+    return jsonify({"Wszyscy członkowie zespołu": team_members_serialized})
+
+
+
+
+""" GET pobranie po ID"""
+
+# api
+@app.route("/api/team-members/<int:id>")
 def get_team_member_by_id(id):
     team_member = TeamMember.query.get_or_404(id)
     
@@ -75,8 +124,10 @@ def get_team_member_by_id(id):
 
 
 
-# UPDATE - PUT
-@app.route("/team-members/<int:id>", methods=["PUT"])
+""" UPDATE -  """
+
+# api
+@app.route("/api/team-members/<int:id>", methods=["PUT"])
 def update_team_member(id):
     team_member_to_update = TeamMember.query.get_or_404(id)
 
@@ -93,7 +144,8 @@ def update_team_member(id):
 
 
 
-#DELETE - Usun czlonka zespolu po ID
+""" DELETE - Usun czlonka zespolu po ID """
+# web
 @app.route("/team-members/<int:id>/delete", methods=['POST'])
 def delete_team_member_id(id):
     team_member_to_delete = TeamMember.query.get(id)
@@ -101,19 +153,39 @@ def delete_team_member_id(id):
     db.session.commit()
     return redirect("/team-members")
 
-    return None
 
-    # return jsonify({"message": f"usunięto czlonka zespolu:{team_member_to_delete.name}"})
+# api
+@app.route("/api/team-members/<int:id>/delete", methods=['DELETE'])
+def api_delete_team_member_id(id):
+    team_member_to_delete = TeamMember.query.get(id)
+    if not team_member_to_delete:
+        return jsonify({"message": f"brak osoby o id: {id}"})
+    db.session.delete(team_member_to_delete)
+    db.session.commit()
+
+    return jsonify({"message": f"usunięto czlonka zespolu: {team_member_to_delete.name}"})
 
 
-# DELETE - USUN WSZYSTKICH 
+
+""" DELETE - Usun wszystkich """
+
+# web
 @app.route("/team-members/delete", methods=["POST"])
 def delete_all_team_members():
     TeamMember.query.delete()
     db.session.commit()
     return redirect("/team-members")
 
+# API
+@app.route("/api/team-members/delete", methods=["DELETE"])
+def api_delete_all_team_members():
+    TeamMember.query.delete()
+    db.session.commit()
+    return jsonify({"message": "usunięto dane wszystkich osob"})
 
+
+
+""" GET Losowanie """
 
 # wylosuj osobe z tych z którzy maja flage was_picked na Flase
 @app.route("/team-members/random", methods=["GET"])
@@ -150,7 +222,9 @@ def pick_random_team_member():
 
 
 
-# PUT RESETUJ FLAGE was_picked na False dla wszystkich
+""" PUT RESETUJ FLAGE was_picked na False dla wszystkich """
+
+# web
 @app.route("/team-members/was-picked/reset", methods=["POST"])
 def reset_flag_was_picked_for_all():
     team_members_with_flag_to_change_to_false = TeamMember.query.all()
@@ -161,13 +235,26 @@ def reset_flag_was_picked_for_all():
     db.session.commit()
 
     return redirect("/team-members")
+
+# API
+@app.route("/api/team-members/was-picked/reset", methods=["POST"])
+def api_reset_flag_was_picked_for_all():
+    team_members_with_flag_to_change_to_false = TeamMember.query.all()
+
+    for team_member in team_members_with_flag_to_change_to_false:
+        team_member.was_picked = False
+        team_member.picked_at = None
+    db.session.commit()
+
     return jsonify({"message": "zresetowano flage u wszystkich"})
 
 
 
-# PUT zmien was_picked na True lub False
-@app.route("/team-members/was-picked/<int:id>", methods=["PUT"])
-def change_flag_was_picked_for_team_member(id):
+''' PUT dla flagi was_picked po ID'''
+
+# api
+@app.route("/api/team-members/was-picked/<int:id>", methods=["PUT"])
+def api_change_flag_was_picked_for_team_member(id):
     team_member_with_flag_to_change = TeamMember.query.get_or_404(id)
     
     if team_member_with_flag_to_change.was_picked == True:
